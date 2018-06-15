@@ -2,12 +2,11 @@ package airship
 
 import (
 	"bufio"
-	//"bytes"
-	_ "encoding/binary"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
-	//"os"
+	"os"
 )
 
 const (
@@ -21,6 +20,8 @@ func serverConn(conn net.Conn) error {
 
 	buf := bufio.NewReader(conn)
 
+	ver, err := buf.Peek(1)
+
 	clientConn, err := net.Dial("tcp", "127.0.0.1:6666")
 
 	if err != nil {
@@ -30,7 +31,19 @@ func serverConn(conn net.Conn) error {
 	defer clientConn.Close()
 
 	errCh := make(chan error, 2)
-	go proxy(clientConn, buf, errCh)
+	if ver[0] == socks5Version {
+		//buf.ReadByte()
+		//buf.ReadByte()
+		//buf.ReadByte()
+		buf2 := bytes.NewBuffer(nil)
+		buf2.Write([]byte{5, 1, 2})
+		buf2.Write([]byte{1, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r'})
+		data := io.MultiReader(buf2, buf)
+		go proxy(clientConn, data, errCh)
+	} else {
+		fmt.Println("1")
+		go proxy(clientConn, buf, errCh)
+	}
 	go proxy(conn, clientConn, errCh)
 
 	// Wait
@@ -50,8 +63,9 @@ type closeWriter interface {
 }
 
 func proxy(dst io.Writer, src io.Reader, errCh chan error) {
-	len, err := io.Copy(dst, src)
-	fmt.Println(len)
+	w := io.MultiWriter(os.Stdout, dst)
+	len, err := io.Copy(w, src)
+	fmt.Printf("\nproxy: %d \n", len)
 	if tcpConn, ok := dst.(closeWriter); ok {
 		tcpConn.CloseWrite()
 	}

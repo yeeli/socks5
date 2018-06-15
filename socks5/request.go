@@ -99,6 +99,8 @@ func NewRequest(bufConn io.Reader) (*Request, error) {
 		return nil, fmt.Errorf("Unsupported command version: %v", header[0])
 	}
 
+	fmt.Println(header)
+
 	// Read in the destination address
 	dest, err := readAddrSpec(bufConn)
 	if err != nil {

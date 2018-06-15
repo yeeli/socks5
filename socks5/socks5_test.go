@@ -69,7 +69,7 @@ func TestSOCKS5_Connect(t *testing.T) {
 	req.Write([]byte{5})
 	req.Write([]byte{2, NoAuth, UserPassAuth})
 	req.Write([]byte{1, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r'})
-	req.Write([]byte{5, 1, 0, 1, 127, 0, 0, 1})
+	//req.Write([]byte{5, 1, 0, 1, 127, 0, 0, 1})
 
 	port := []byte{0, 0}
 	binary.BigEndian.PutUint16(port, uint16(lAddr.Port))
