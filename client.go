@@ -9,6 +9,9 @@ import (
 	"os"
 )
 
+type Airship struct {
+}
+
 const (
 	socks5Version = uint8(5)
 	NoAuth        = uint8(0)
@@ -32,16 +35,15 @@ func serverConn(conn net.Conn) error {
 
 	errCh := make(chan error, 2)
 	if ver[0] == socks5Version {
-		//buf.ReadByte()
-		//buf.ReadByte()
-		//buf.ReadByte()
+		socks := make([]byte, 3)
+		io.ReadAtLeast(conn, socks, len(socks))
+		fmt.Println(socks)
 		buf2 := bytes.NewBuffer(nil)
 		buf2.Write([]byte{5, 1, 2})
 		buf2.Write([]byte{1, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r'})
 		data := io.MultiReader(buf2, buf)
 		go proxy(clientConn, data, errCh)
 	} else {
-		fmt.Println("1")
 		go proxy(clientConn, buf, errCh)
 	}
 	go proxy(conn, clientConn, errCh)
