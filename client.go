@@ -13,6 +13,7 @@ type ClientConfig struct {
 	Port  string
 	User  string
 	Pass  string
+	Chost string
 	Cport string
 }
 
@@ -101,7 +102,7 @@ func proxy(dst io.Writer, src io.Reader, errCh chan error) {
 
 func Start(c *ClientConfig) error {
 
-	str := fmt.Sprintf("%s:%s", c.Host, c.Cport)
+	str := fmt.Sprintf("%s:%s", c.Chost, c.Cport)
 
 	ln, err := net.Listen("tcp", str)
 
