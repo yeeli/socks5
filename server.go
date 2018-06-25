@@ -2,11 +2,19 @@ package airship
 
 import (
 	"airship/socks5"
+	"fmt"
 )
 
-func ServerStart() {
+type ServerConfig struct {
+	Host string
+	Port string
+	User string
+	Pass string
+}
+
+func ServerStart(c *ServerConfig) {
 	creds := socks5.StaticCredentials{
-		"foo": "bar",
+		c.User: c.Pass,
 	}
 	cator := socks5.UserPassAuthenticator{Credentials: creds}
 	conf := &socks5.Config{
@@ -20,7 +28,8 @@ func ServerStart() {
 	}
 
 	// Create SOCKS5 proxy on localhost port 8000
-	if err := server.ListenAndServe("tcp", "127.0.0.1:6666"); err != nil {
+	str := fmt.Sprintf("%s:%s", c.Host, c.Port)
+	if err := server.ListenAndServe("tcp", str); err != nil {
 		panic(err)
 	}
 }

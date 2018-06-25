@@ -99,8 +99,6 @@ func NewRequest(bufConn io.Reader) (*Request, error) {
 		return nil, fmt.Errorf("Unsupported command version: %v", header[0])
 	}
 
-	fmt.Println(header)
-
 	// Read in the destination address
 	dest, err := readAddrSpec(bufConn)
 	if err != nil {
@@ -194,8 +192,6 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 
 	// Send success
 	local := target.LocalAddr().(*net.TCPAddr)
-	fmt.Println(local.IP)
-	fmt.Println(local.Port)
 	bind := AddrSpec{IP: local.IP, Port: local.Port}
 	if err := sendReply(conn, successReply, &bind); err != nil {
 		return fmt.Errorf("Failed to send reply: %v", err)

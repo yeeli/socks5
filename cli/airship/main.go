@@ -2,18 +2,42 @@ package main
 
 import (
 	"airship"
-	_ "fmt"
-	_ "gopkg.in/urfave/cli.v2"
+	"fmt"
+	"gopkg.in/urfave/cli.v2"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 )
 
 func main() {
-	args := os.Args
-	if args[1] == "server" {
-		airship.ServerStart()
+	file, err := ioutil.ReadFile("config.yml")
+	if err != nil {
+		fmt.Errorf("err: %v", err)
 	}
-
-	if args[1] == "client" {
-		airship.Start()
+	app := &cli.App{
+		Name: "airship",
+		Commands: []*cli.Command{
+			{
+				Name:  "server",
+				Usage: "start socks5 server",
+				Action: func(c *cli.Context) error {
+					config := airship.ServerConfig{}
+					yaml.Unmarshal(file, &config)
+					airship.ServerStart(&config)
+					return nil
+				},
+			},
+			{
+				Name:  "client",
+				Usage: "start socks5 client",
+				Action: func(c *cli.Context) error {
+					config := airship.ClientConfig{}
+					yaml.Unmarshal(file, &config)
+					airship.Start(&config)
+					return nil
+				},
+			},
+		},
 	}
+	app.Run(os.Args)
 }
