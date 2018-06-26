@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	file, err := ioutil.ReadFile("config.yml")
+	file, err := ioutil.ReadFile("airship.yml")
 	if err != nil {
 		fmt.Errorf("err: %v", err)
 	}

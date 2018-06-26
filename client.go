@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	//"os"
+	"time"
 )
 
 type ClientConfig struct {
@@ -26,6 +28,9 @@ const (
 func serverConn(c *ClientConfig, conn net.Conn) error {
 	defer conn.Close()
 
+	// 本地不需要密码, 直接发送[5, 0]
+	conn.Write([]byte{5, 0})
+
 	buf := bufio.NewReader(conn)
 	ver, _ := buf.Peek(3)
 
@@ -39,17 +44,24 @@ func serverConn(c *ClientConfig, conn net.Conn) error {
 
 	defer clientConn.Close()
 
-	// 本地不需要密码, 直接发送[5, 0]
-	conn.Write([]byte{5, 0})
-
+	//设置通行Channcel
 	errCh := make(chan error, 2)
-	go proxy(conn, clientConn, errCh)
+	//go proxy("send", conn, clientConn, errCh)
+
+	info, _ := buf.Peek(8)
+	ipLen := int(info[7])
+	info2, _ := buf.Peek(ipLen + 10)
+	host := string(info2[8 : ipLen+8])
+	portInfo := info2[ipLen+8 : ipLen+10]
+	port := (int(portInfo[0]) << 8) | int(portInfo[1])
+	url := fmt.Sprintf("%s:%d", host, port)
 
 	if ver[0] == socks5Version {
 		socks := make([]byte, 3)
 		if _, err := io.ReadAtLeast(buf, socks, len(socks)); err != nil {
-			fmt.Println(err)
+			fmt.Errorf("Send data error: %v", err)
 		}
+
 		buf2 := bytes.NewBuffer(nil)
 		buf2.Write([]byte{5, 1, 2})
 		buf2.Write([]byte{1})
@@ -60,20 +72,21 @@ func serverConn(c *ClientConfig, conn net.Conn) error {
 		buf2.Write([]byte{passLen})
 		buf2.Write([]byte(c.Pass))
 		data := io.MultiReader(buf2, buf)
-		go proxy(clientConn, data, errCh)
+
+		go proxy("send", url, clientConn, data, errCh)
 	} else {
-		go proxy(clientConn, buf, errCh)
+		go proxy("send", url, clientConn, buf, errCh)
 	}
 
 	clientBuf := bufio.NewReader(clientConn)
 	socks2 := make([]byte, 4)
 	if _, err := io.ReadAtLeast(clientBuf, socks2, len(socks2)); err != nil {
-		fmt.Println(err)
+		fmt.Errorf("Recive data error: %v", err)
 	}
 	buf3 := bytes.NewBuffer(nil)
 	data2 := io.MultiReader(buf3, clientBuf)
 
-	go proxy(conn, data2, errCh)
+	go proxy("recive", url, conn, data2, errCh)
 
 	// Wait
 	for i := 0; i < 2; i++ {
@@ -90,10 +103,13 @@ type closeWriter interface {
 	CloseWrite() error
 }
 
-func proxy(dst io.Writer, src io.Reader, errCh chan error) {
+func proxy(data string, url string, dst io.Writer, src io.Reader, errCh chan error) {
+	startAt := time.Now()
 	//w := io.MultiWriter(os.Stdout, dst)
-	_, err := io.Copy(dst, src)
-	//fmt.Printf("proxy: %d \n", len)
+	len, err := io.Copy(dst, src)
+	endAt := time.Now()
+	subT := endAt.Sub(startAt)
+	fmt.Printf("%s %s: %.2f KB complete in %v \n", url, data, float64(len)/float64(1024), subT)
 	if tcpConn, ok := dst.(closeWriter); ok {
 		tcpConn.CloseWrite()
 	}
