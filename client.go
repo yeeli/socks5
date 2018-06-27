@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	socks5Version = uint8(5)
+	NoAuth        = uint8(0)
+	UserPassAuth  = uint8(2)
+)
+
 type ClientConfig struct {
 	Host  string
 	Port  string
@@ -19,13 +25,11 @@ type ClientConfig struct {
 	Cport string
 }
 
-const (
-	socks5Version = uint8(5)
-	NoAuth        = uint8(0)
-	UserPassAuth  = uint8(2)
-)
+type Client struct {
+	Config *ClientConfig
+}
 
-func serverConn(c *ClientConfig, conn net.Conn) error {
+func (c *Client) serverConn(conn net.Conn) error {
 	defer conn.Close()
 
 	// 本地不需要密码, 直接发送[5, 0]
@@ -34,7 +38,7 @@ func serverConn(c *ClientConfig, conn net.Conn) error {
 	buf := bufio.NewReader(conn)
 	ver, _ := buf.Peek(3)
 
-	sevHost := fmt.Sprintf("%s:%s", c.Host, c.Port)
+	sevHost := fmt.Sprintf("%s:%s", c.Config.Host, c.Config.Port)
 
 	clientConn, err := net.Dial("tcp", sevHost)
 
@@ -65,12 +69,12 @@ func serverConn(c *ClientConfig, conn net.Conn) error {
 		buf2 := bytes.NewBuffer(nil)
 		buf2.Write([]byte{5, 1, 2})
 		buf2.Write([]byte{1})
-		userLen := byte(len(c.User))
+		userLen := byte(len(c.Config.User))
 		buf2.Write([]byte{userLen})
-		buf2.Write([]byte(c.User))
-		passLen := byte(len(c.Pass))
+		buf2.Write([]byte(c.Config.User))
+		passLen := byte(len(c.Config.Pass))
 		buf2.Write([]byte{passLen})
-		buf2.Write([]byte(c.Pass))
+		buf2.Write([]byte(c.Config.Pass))
 		data := io.MultiReader(buf2, buf)
 
 		go proxy("send", url, clientConn, data, errCh)
@@ -116,9 +120,10 @@ func proxy(data string, url string, dst io.Writer, src io.Reader, errCh chan err
 	errCh <- err
 }
 
-func Start(c *ClientConfig) error {
+func (c *Client) Start() error {
 
-	str := fmt.Sprintf("%s:%s", c.Chost, c.Cport)
+	str := fmt.Sprintf("%s:%s", c.Config.Chost, c.Config.Cport)
+	fmt.Println("start server", str)
 
 	ln, err := net.Listen("tcp", str)
 
@@ -132,7 +137,7 @@ func Start(c *ClientConfig) error {
 			// handle error
 			return err
 		}
-		go serverConn(c, conn)
+		go c.serverConn(conn)
 	}
 	return nil
 }

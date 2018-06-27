@@ -12,9 +12,13 @@ type ServerConfig struct {
 	Pass string
 }
 
-func ServerStart(c *ServerConfig) {
+type Server struct {
+	Config *ServerConfig
+}
+
+func (s *Server) Start() error {
 	creds := socks5.StaticCredentials{
-		c.User: c.Pass,
+		s.Config.User: s.Config.Pass,
 	}
 	cator := socks5.UserPassAuthenticator{Credentials: creds}
 	conf := &socks5.Config{
@@ -28,8 +32,9 @@ func ServerStart(c *ServerConfig) {
 	}
 
 	// Create SOCKS5 proxy on localhost port 8000
-	str := fmt.Sprintf("%s:%s", c.Host, c.Port)
+	str := fmt.Sprintf("%s:%s", s.Config.Host, s.Config.Port)
 	if err := server.ListenAndServe("tcp", str); err != nil {
 		panic(err)
 	}
+	return nil
 }

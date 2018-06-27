@@ -21,9 +21,12 @@ func main() {
 				Name:  "server",
 				Usage: "start socks5 server",
 				Action: func(c *cli.Context) error {
-					config := airship.ServerConfig{}
-					yaml.Unmarshal(file, &config)
-					airship.ServerStart(&config)
+					conf := airship.ServerConfig{}
+					yaml.Unmarshal(file, &conf)
+					server := &airship.Server{
+						Config: &conf,
+					}
+					server.Start()
 					return nil
 				},
 			},
@@ -31,9 +34,12 @@ func main() {
 				Name:  "client",
 				Usage: "start socks5 client",
 				Action: func(c *cli.Context) error {
-					config := airship.ClientConfig{}
-					yaml.Unmarshal(file, &config)
-					airship.Start(&config)
+					conf := airship.ClientConfig{}
+					yaml.Unmarshal(file, &conf)
+					client := &airship.Client{
+						Config: &conf,
+					}
+					client.Start()
 					return nil
 				},
 			},
